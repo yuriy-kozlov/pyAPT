@@ -80,6 +80,9 @@ class Controller(object):
     # any other message received in the mean time are place in the queue.
     self.message_queue = []
 
+    self.status_req_message = message.MGMSG_MOT_REQ_DCSTATUSUPDATE
+    self.status_get_message = message.MGMSG_MOT_GET_DCSTATUSUPDATE
+
   def __enter__(self):
     return self
 
@@ -140,6 +143,10 @@ class Controller(object):
       found = m.messageID == expected_messageID
       if found:
         return m
+      elif m.messageID == message.MGMSG_HW_RESPONSE:
+        # Error
+        raise Exception('Error response from controller')
+        return m
       else:
         self.message_queue.append(m)
 
@@ -167,10 +174,10 @@ class Controller(object):
 
     Position and velocity will be in mm and mm/s respectively.
     """
-    reqmsg = Message(message.MGMSG_MOT_REQ_DCSTATUSUPDATE, param1=channel)
+    reqmsg = Message(self.status_req_message, param1=channel)
     self._send_message(reqmsg)
 
-    getmsg = self._wait_message(message.MGMSG_MOT_GET_DCSTATUSUPDATE)
+    getmsg = self._wait_message(self.status_get_message)
     return ControllerStatus(self, getmsg.datastring)
 
   def identify(self):
@@ -574,7 +581,7 @@ class ControllerStatus(object):
     it looks like it is signed.
     """
     channel, pos_apt, vel_apt, _, statusbits = st.unpack( '<HihHI',
-                                                          statusbytestring)
+                                                          statusbytestring[:14])
 
     self.channel = channel
     if pos_apt:
