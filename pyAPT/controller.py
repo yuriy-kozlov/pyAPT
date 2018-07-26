@@ -208,8 +208,8 @@ class Controller(object):
     resetmsg = Message(message.MGMSG_MOT_SET_PZSTAGEPARAMDEFAULTS)
     self._send_message(resetmsg)
 
-  def request_home_params(self):
-    reqmsg = Message(message.MGMSG_MOT_REQ_HOMEPARAMS)
+  def request_home_params(self, channel=1):
+    reqmsg = Message(message.MGMSG_MOT_REQ_HOMEPARAMS, param1=channel)
     self._send_message(reqmsg)
 
     getmsg = self._wait_message(message.MGMSG_MOT_GET_HOMEPARAMS)
@@ -279,7 +279,7 @@ class Controller(object):
           resumemsg = Message(message.MGMSG_MOT_RESUME_ENDOFMOVEMSGS)
           self._send_message(resumemsg)
 
-  def home(self, wait=True, velocity=None, offset=0):
+  def home(self, channel=1, wait=True, velocity=None, offset=0):
     """
     When velocity is not None, homing parameters will be set so homing velocity
     will be as given, in mm per second.
@@ -306,13 +306,13 @@ class Controller(object):
     # documented, we get the current parameters, assuming they are correct,
     # and then modify only the velocity and offset component, then send it 
     # back to the controller.
-    curparams = list(self.request_home_params())
+    curparams = list(self.request_home_params(channel))
 
     # make sure we never exceed the limits of our stage
 
     offset = min(offset, self.linear_range[1])
     offset = max(offset, 0)
-    offset_apt = offset * self.position_scale
+    offset_apt = int(offset * self.position_scale)
 
     """
     <: little endian
@@ -323,8 +323,12 @@ class Controller(object):
     i: 4 bytes for offset distance
     """
 
+    curparams[0] = channel
     if velocity:
       velocity = min(velocity, self.max_velocity)
+      curparams[-2] = int(velocity * self.velocity_scale)
+    elif curparams[-2] == 0:
+      velocity = self.max_velocity / 8
       curparams[-2] = int(velocity * self.velocity_scale)
 
     curparams[-1] = offset_apt
@@ -339,7 +343,7 @@ class Controller(object):
     else:
       self.suspend_end_of_move_messages()
 
-    homemsg = Message(message.MGMSG_MOT_MOVE_HOME)
+    homemsg = Message(message.MGMSG_MOT_MOVE_HOME, param1=channel)
     self._send_message(homemsg)
 
     if wait:
