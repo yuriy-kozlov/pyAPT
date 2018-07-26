@@ -147,6 +147,10 @@ class Controller(object):
         # Error
         raise Exception('Error response from controller')
         return m
+      elif m.messageID == message.MGMSG_HW_RICHRESPONSE:
+        # Error
+        raise Exception('Error rich response from controller')
+        return m
       else:
         self.message_queue.append(m)
 
