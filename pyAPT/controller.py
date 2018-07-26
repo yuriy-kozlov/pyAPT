@@ -80,8 +80,15 @@ class Controller(object):
     # any other message received in the mean time are place in the queue.
     self.message_queue = []
 
-    self.status_req_message = message.MGMSG_MOT_REQ_DCSTATUSUPDATE
-    self.status_get_message = message.MGMSG_MOT_GET_DCSTATUSUPDATE
+    self.has_end_of_move_messages = True
+    if serial_number[1] == '3' or serial_number[1] == '8':
+        self.status_req_message = message.MGMSG_MOT_REQ_DCSTATUSUPDATE
+        self.status_get_message = message.MGMSG_MOT_GET_DCSTATUSUPDATE
+        self.has_end_of_move_messages = True
+    else:
+        self.status_req_message = message.MGMSG_MOT_REQ_STATUSUPDATE
+        self.status_get_message = message.MGMSG_MOT_GET_STATUSUPDATE
+        self.has_end_of_move_messages = False
 
   def __enter__(self):
     return self
@@ -219,12 +226,14 @@ class Controller(object):
     return st.unpack('<HHHii', dstr)
 
   def suspend_end_of_move_messages(self):
-      suspendmsg = Message(message.MGMSG_MOT_SUSPEND_ENDOFMOVEMSGS)
-      self._send_message(suspendmsg)
+      if self.has_end_of_move_messages:
+          suspendmsg = Message(message.MGMSG_MOT_SUSPEND_ENDOFMOVEMSGS)
+          self._send_message(suspendmsg)
 
   def resume_end_of_move_messages(self):
-      resumemsg = Message(message.MGMSG_MOT_RESUME_ENDOFMOVEMSGS)
-      self._send_message(resumemsg)
+      if self.has_end_of_move_messages:
+          resumemsg = Message(message.MGMSG_MOT_RESUME_ENDOFMOVEMSGS)
+          self._send_message(resumemsg)
 
   def home(self, wait=True, velocity=None, offset=0):
     """
