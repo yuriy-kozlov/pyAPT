@@ -225,6 +225,50 @@ class Controller(object):
     """
     return st.unpack('<HHHii', dstr)
 
+  def request_limswitch_params(self, channel=1):
+    reqmsg = Message(message.MGMSG_MOT_REQ_LIMSWITCHPARAMS, param1=channel)
+    self._send_message(reqmsg)
+
+    getmsg = self._wait_message(message.MGMSG_MOT_GET_LIMSWITCHPARAMS)
+    dstr = getmsg.datastring
+
+    """
+    <: little endian
+    H: 2 bytes for channel id
+    H: 2 bytes for CW hardware limit
+    H: 2 bytes for CCW hardware limit
+    i: 4 bytes for CW soft limit
+    i: 4 bytes for CCW soft limit
+    H: 2 bytes for software limit mode
+    """
+    return st.unpack('<HHHiiH', dstr)
+
+  def set_limswitch_params(self, channel=1, cw_hw=3, ccw_hw=3,
+                           cw_sw_limit=0, ccw_sw_limit=0,
+                           sw_limit_mode=1):
+    curparams = list(self.request_limswitch_params())
+
+    """
+    <: little endian
+    H: 2 bytes for channel id
+    H: 2 bytes for CW hardware limit
+    H: 2 bytes for CCW hardware limit
+    i: 4 bytes for CW soft limit
+    i: 4 bytes for CCW soft limit
+    H: 2 bytes for software limit mode
+    """
+    curparams[0] = channel
+    curparams[1] = cw_hw
+    curparams[2] = ccw_hw
+    curparams[3] = cw_sw_limit
+    curparams[4] = ccw_sw_limit
+    curparams[5] = sw_limit_mode
+
+    newparams = st.pack('<HHHiiH', *curparams)
+
+    setmsg = Message(message.MGMSG_MOT_SET_LIMSWITCHPARAMS, data=newparams)
+    self._send_message(setmsg)
+
   def suspend_end_of_move_messages(self):
       if self.has_end_of_move_messages:
           suspendmsg = Message(message.MGMSG_MOT_SUSPEND_ENDOFMOVEMSGS)
