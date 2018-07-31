@@ -58,6 +58,7 @@ class Controller(object):
     # acceleration is in mm^2/s
     self.max_velocity = 0.3
     self.max_acceleration = 0.3
+    self.backlash = 0.001
 
     # these define how encode count translates into position, velocity
     # and acceleration. e.g. 1 mm is equal to 1 * self.position_scale
@@ -521,6 +522,51 @@ class Controller(object):
       acc /= self.acceleration_scale
 
     return min_vel, acc, max_vel
+
+  def set_backlash_parameters(self, backlash=None, channel=1):
+    """
+    Sets the backlash parameters of the controller.
+    When called without arguments, backlash will be set to self.backlash
+    """
+    if backlash == None:
+      backlash = self.backlash
+
+    backlash_apt = backlash * self.position_scale
+
+    """
+    <: small endian
+    H: 2 bytes for channel
+    i: 4 bytes for backlash
+    """
+    params = st.pack('<Hi', channel, backlash_apt)
+    setmsg = Message(message.MGMSG_MOT_SET_GENMOVEPARAMS, data=params)
+    self._send_message(setmsg)
+
+  def backlash_parameters(self, channel=1, raw=False):
+    """
+    Returns the backlash parameter of the controller.
+
+    channel specifies the channel to query.
+
+    raw specifies whether the raw controller values are returned, or the scaled
+    real world values. Defaults to False.
+    """
+    reqmsg = Message(message.MGMSG_MOT_REQ_GENMOVEPARAMS, param1=channel)
+    self._send_message(reqmsg)
+
+    getmsg = self._wait_message(message.MGMSG_MOT_GET_GENMOVEPARAMS)
+
+    """
+    <: small endian
+    H: 2 bytes for channel
+    i: 4 bytes for backlash
+    """
+    ch,backlash = st.unpack('<Hi',getmsg.datastring)
+
+    if not raw:
+      backlash /= self.position_scale
+
+    return backlash
 
   def info(self):
     """
