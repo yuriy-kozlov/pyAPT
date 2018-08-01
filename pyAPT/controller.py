@@ -270,6 +270,55 @@ class Controller(object):
     setmsg = Message(message.MGMSG_MOT_SET_LIMSWITCHPARAMS, data=newparams)
     self._send_message(setmsg)
 
+  def request_pid_params(self, channel=1):
+    reqmsg = Message(message.MGMSG_MOT_REQ_DCPIDPARAMS, param1=channel)
+    self._send_message(reqmsg)
+
+    getmsg = self._wait_message(message.MGMSG_MOT_GET_DCPIDPARAMS)
+    dstr = getmsg.datastring
+
+    """
+    <: little endian
+    H: 2 bytes for channel id
+    i: 4 bytes for Proportional 0-32767
+    i: 4 bytes for Integral 0-32767
+    i: 4 bytes for Differential 0-32767
+    i: 4 bytes for Integral Limit 0-32767
+    H: 2 bytes for FilterControl mask
+    """
+    return st.unpack('<HiiiiH', dstr)
+
+  def set_pid_params(self, channel=1, prop=None, integral=None,
+                           dif=None, integral_limit=None,
+                           mask=0xF):
+    curparams = list(self.request_pid_params())
+
+    """
+    <: little endian
+    H: 2 bytes for channel id
+    i: 4 bytes for Proportional 0-32767
+    i: 4 bytes for Integral 0-32767
+    i: 4 bytes for Differential 0-32767
+    i: 4 bytes for Integral Limit 0-32767
+    H: 2 bytes for FilterControl mask
+    """
+    curparams[0] = channel
+    if prop is not None:
+      curparams[1] = prop
+    if integral is not None:
+      curparams[2] = integral
+    if dif is not None:
+      curparams[3] = dif
+    if integral_limit is not None:
+      curparams[4] = integral_limit
+    if mask is not None:
+      curparams[5] = mask
+
+    newparams = st.pack('<HiiiiH', *curparams)
+
+    setmsg = Message(message.MGMSG_MOT_SET_DCPIDPARAMS, data=newparams)
+    self._send_message(setmsg)
+
   def suspend_end_of_move_messages(self):
       if self.has_end_of_move_messages:
           suspendmsg = Message(message.MGMSG_MOT_SUSPEND_ENDOFMOVEMSGS)
