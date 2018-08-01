@@ -905,5 +905,5 @@ class ControllerStatus(object):
     return statuslist
 
   def __str__(self):
-    return 'pos=%.2fmm vel=%.2fmm/s, flags=%s'%(self.position, self.velocity, self.flag_strings())
+    return 'pos=%.4fmm vel=%.2fmm/s, flags=%s'%(self.position, self.velocity, self.flag_strings())
 
