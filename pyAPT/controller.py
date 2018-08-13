@@ -523,8 +523,8 @@ class Controller(object):
     acceleration = min(acceleration, self.max_acceleration)
     max_velocity = min(max_velocity, self.max_velocity)
 
-    acc_apt = acceleration * self.acceleration_scale
-    max_vel_apt = max_velocity * self.velocity_scale
+    acc_apt = int(acceleration * self.acceleration_scale)
+    max_vel_apt = int(max_velocity * self.velocity_scale)
 
     """
     <: small endian
@@ -580,7 +580,7 @@ class Controller(object):
     if backlash == None:
       backlash = self.backlash
 
-    backlash_apt = backlash * self.position_scale
+    backlash_apt = int(backlash * self.position_scale)
 
     """
     <: small endian
